@@ -1,0 +1,34 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+int leastInterval(char* tasks, int tasksSize, int n) {
+    // Array to record the frequencies of each uppercase letter (A-Z)
+    int freq[26] = {0};
+    
+    // Count frequencies of each task
+    for (int i = 0; i < tasksSize; i++) {
+        freq[tasks[i] - 'A']++;
+    }
+    
+    // Find the maximum frequency among all tasks
+    int max_freq = 0;
+    for (int i = 0; i < 26; i++) {
+        if (freq[i] > max_freq) {
+            max_freq = freq[i];
+        }
+    }
+    
+    // Count how many tasks share this maximum frequency
+    int max_freq_count = 0;
+    for (int i = 0; i < 26; i++) {
+        if (freq[i] == max_freq) {
+            max_freq_count++;
+        }
+    }
+    
+    // Calculate the minimum intervals required based on the formula
+    int ans = (max_freq - 1) * (n + 1) + max_freq_count;
+    
+    // Return the larger value between the calculated slots and actual task count
+    return (ans > tasksSize) ? ans : tasksSize;
+}
