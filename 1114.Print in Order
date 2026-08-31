@@ -1,0 +1,19 @@
+import threading
+
+class Foo:
+    def __init__(self):
+        self.gate_second = threading.Semaphore(0)
+        self.gate_third = threading.Semaphore(0)
+
+    def first(self, printFirst: 'Callable[[], None]') -> None:
+        printFirst()
+        self.gate_second.release()
+
+    def second(self, printSecond: 'Callable[[], None]') -> None:
+        self.gate_second.acquire()
+        printSecond()
+        self.gate_third.release()
+
+    def third(self, printThird: 'Callable[[], None]') -> None:
+        self.gate_third.acquire()
+        printThird()
