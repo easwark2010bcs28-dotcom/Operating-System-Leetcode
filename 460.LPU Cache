@@ -1,0 +1,127 @@
+#include <stdio.h>
+#include <stdlib.h>
+#define MAX_KEY 100001
+typedef struct Node {
+    int key;
+    int value;
+    int freq;
+    struct Node* prev;
+    struct Node* next;
+} Node;
+typedef struct List {
+    Node* head;
+    Node* tail;
+} List;
+typedef struct {
+    int capacity;
+    int size;
+    int minFreq;
+    Node* nodeMap[MAX_KEY];
+    List* freqMap[200005];
+} LFUCache;
+Node* createNode(int key, int value) {
+    Node* newNode = (Node*)malloc(sizeof(Node));
+    newNode->key = key;
+    newNode->value = value;
+    newNode->freq = 1;
+    newNode->prev = NULL;
+    newNode->next = NULL;
+    return newNode;
+}
+List* createList() {
+    List* list = (List*)malloc(sizeof(List));
+    list->head = createNode(-1, -1);
+    list->tail = createNode(-1, -1);
+    list->head->next = list->tail;
+    list->tail->prev = list->head;
+    return list;
+}
+void addNodeToHead(List* list, Node* node) {
+    node->next = list->head->next;
+    node->prev = list->head;
+    list->head->next->prev = node;
+    list->head->next = node;
+}
+void removeNode(Node* node) {
+    node->prev->next = node->next;
+    node->next->prev = node->prev;
+}
+int isListEmpty(List* list) {
+    return list->head->next == list->tail;
+}
+LFUCache* lFUCacheCreate(int capacity) {
+    LFUCache* cache = (LFUCache*)malloc(sizeof(LFUCache));
+    cache->capacity = capacity;
+    cache->size = 0;
+    cache->minFreq = 0;
+    for (int i = 0; i < MAX_KEY; i++) {
+        cache->nodeMap[i] = NULL;
+    }
+    for (int i = 0; i < 200005; i++) {
+        cache->freqMap[i] = NULL;
+    }
+    return cache;
+}
+void updateFreq(LFUCache* cache, Node* node) {
+    int oldFreq = node->freq;
+    node->freq++;
+    int newFreq = node->freq;
+    removeNode(node);
+    if (isListEmpty(cache->freqMap[oldFreq]) && oldFreq == cache->minFreq) {
+        cache->minFreq++;
+    }
+    if (cache->freqMap[newFreq] == NULL) {
+        cache->freqMap[newFreq] = createList();
+    }
+    addNodeToHead(cache->freqMap[newFreq], node);
+}
+int lFUCacheGet(LFUCache* cache, int key) {
+    if (cache->capacity == 0 || cache->nodeMap[key] == NULL) {
+        return -1;
+    }
+    Node* node = cache->nodeMap[key];
+    updateFreq(cache, node);
+    return node->value;
+}
+void lFUCachePut(LFUCache* cache, int key, int value) {
+    if (cache->capacity == 0) {
+        return;
+    }
+    if (cache->nodeMap[key] != NULL) {
+        Node* node = cache->nodeMap[key];
+        node->value = value;
+        updateFreq(cache, node);
+    } else {
+        if (cache->size >= cache->capacity) {
+            List* minFreqList = cache->freqMap[cache->minFreq];
+            Node* lruNode = minFreqList->tail->prev;
+            cache->nodeMap[lruNode->key] = NULL;
+            removeNode(lruNode);
+            free(lruNode);
+            cache->size--;
+        }
+        Node* newNode = createNode(key, value);
+        cache->nodeMap[key] = newNode;
+        cache->minFreq = 1;
+        if (cache->freqMap[1] == NULL) {
+            cache->freqMap[1] = createList();
+        }
+        addNodeToHead(cache->freqMap[1], newNode);
+        cache->size++;
+    }
+}
+void lFUCacheFree(LFUCache* cache) {
+    for (int i = 0; i < MAX_KEY; i++) {
+        if (cache->nodeMap[i] != NULL) {
+            free(cache->nodeMap[i]);
+        }
+    }
+    for (int i = 0; i < 200005; i++) {
+        if (cache->freqMap[i] != NULL) {
+            free(cache->freqMap[i]->head);
+            free(cache->freqMap[i]->tail);
+            free(cache->freqMap[i]);
+        }
+    }
+    free(cache);
+}
